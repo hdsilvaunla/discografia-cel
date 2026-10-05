@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor://localhost https://localhost; img-src 'self' data: blob: https: capacitor:; media-src 'self' blob:; connect-src 'self' capacitor://localhost https://localhost https://*; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Discografía">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Discografía Viewer v7.3.0</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzRmYzNmNyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2E3OGJmYSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9IjkwIiBmaWxsPSJ1cmwoI2cpIi8+PC9zdmc+">
+</head>
+<body>
+
+<header>
+  <div class="h-top">
+    <div class="h-logo"></div>
+    <div class="h-title">
+      <h1>Discografía <span id="freshBadge"></span></h1>
+      <small id="sub">Sin datos cargados</small>
+    </div>
+    <button class="h-btn" id="btnCmd" title="Comandos (Ctrl+K)">⌘</button>
+    <button class="h-btn" id="btnTheme" title="Tema">🌙</button>
+    <button class="h-btn accent" id="btnSync" title="Sincronizar" style="display:none">🔄</button>
+    <button class="h-btn accent" id="btnImportTop" title="Importar">📥</button>
+  </div>
+  <div class="search" id="searchBox">
+    <span class="ico">🔍</span>
+    <input type="text" id="q" placeholder="Buscar… (probá: rock argentino de los 80)" autocomplete="off" inputmode="search" enterkeyhint="search">
+    <span class="adv">AVANZADA</span>
+    <button class="voice-btn" id="btnVoice" title="Buscar por voz" style="display:none">🎤</button>
+    <button class="clr" id="clrQ" type="button">✕</button>
+    <div class="recent" id="recent"></div>
+    <div class="smart-suggest" id="smartSuggest"></div>
+  </div>
+</header>
+
+<div class="cats" id="cats" style="display:none"></div>
+
+<main id="main"></main>
+
+<button class="fab-top" id="fabTop" title="Volver arriba">↑</button>
+
+<nav>
+  <button data-tab="list" class="on"><span class="n-ic">📋</span><span>Lista</span></button>
+  <button data-tab="grid"><span class="n-ic">▦</span><span>Grid</span></button>
+  <button data-tab="timeline"><span class="n-ic">📅</span><span>Timeline</span></button>
+  <button data-tab="stats"><span class="n-ic">📊</span><span>Panel</span></button>
+  <button data-tab="artists"><span class="n-ic">🎤</span><span>Artistas</span></button>
+  <button data-tab="more"><span class="n-ic">⋯</span><span>Más</span></button>
+</nav>
+
+<div id="toast"></div>
+
+<div id="lb">
+  <div class="lb-top">
+    <button class="lb-x" id="lbX">✕</button>
+    <div class="lb-idx" id="lbIdx">—</div>
+    <div style="width:44px"></div>
+  </div>
+  <img id="lbImg" src="" alt="">
+  <div class="lb-info" id="lbInfo"></div>
+</div>
+
+<div class="mo" id="detModal">
+  <div class="md">
+    <div class="md-h"><h3><span>💿</span><span id="detTitle">Detalles</span></h3><button class="md-x" id="detClose">✕</button></div>
+    <div class="md-b" id="detBody"></div>
+  </div>
+</div>
+
+<div class="mo center" id="impModal">
+  <div class="md" style="max-width:440px">
+    <div class="md-h"><h3><span>📥</span><span>Importar colección</span></h3><button class="md-x" id="impClose">✕</button></div>
+    <div class="md-b">
+      <div style="padding:12px 14px;background:rgba(79,195,247,.08);border-left:4px solid var(--accent);border-radius:10px;font-size:.82rem;line-height:1.55;margin-bottom:16px">
+        Cargá un archivo <b>.json</b> de la lista. La importación reemplaza solo la copia local.
+      </div>
+      <div id="dropZone" style="padding:26px 16px;border:2px dashed var(--line);border-radius:14px;text-align:center;color:var(--muted);font-size:.85rem;transition:.2s;margin-bottom:14px;line-height:1.5">
+        <div style="font-size:2.4rem;margin-bottom:8px">📂</div>
+        <b style="color:var(--txt);display:block;margin-bottom:4px">Arrastrá o elegí un archivo</b>
+        <span style="font-size:.75rem">Backup JSON</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input type="file" id="fileInp" accept=".json,application/json,text/json" style="display:none">
+        <button type="button" id="btnPickFile" style="padding:14px 16px;border-radius:12px;background:rgba(79,195,247,.15);border:1px solid rgba(79,195,247,.4);color:var(--accent);font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:.92rem;cursor:pointer">📁 Elegir archivo .json</button>
+        <button type="button" id="btnPaste" style="padding:13px 16px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-weight:600;font-family:inherit;font-size:.9rem;cursor:pointer">📋 Pegar JSON</button>
+        <button type="button" id="btnUrl" style="padding:13px 16px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-weight:600;font-family:inherit;font-size:.9rem;cursor:pointer">🌐 Desde URL directa</button>
+        <button type="button" id="btnLocalFolder" style="padding:13px 16px;border-radius:12px;background:rgba(93,220,154,.1);border:1px solid rgba(93,220,154,.35);color:var(--ok);font-weight:600;font-family:inherit;font-size:.9rem;cursor:pointer">📂 Carpeta local</button>
+        <button type="button" id="btnRemoteUrls" style="padding:13px 16px;border-radius:12px;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.35);color:var(--purple);font-weight:600;font-family:inherit;font-size:.9rem;cursor:pointer">☁️ URLs remotas (iCloud/Dropbox)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mo center" id="pasteModal">
+  <div class="md" style="max-width:520px">
+    <div class="md-h"><h3><span>📋</span><span>Pegar JSON</span></h3><button class="md-x" id="pasteClose">✕</button></div>
+    <div class="md-b">
+      <textarea id="pasteArea" rows="12" placeholder='{"version":5,"categories":{...}}' style="width:100%;padding:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);font-family:ui-monospace,Menlo,monospace;font-size:.78rem;line-height:1.5;resize:vertical;outline:none"></textarea>
+    </div>
+    <div class="md-f" style="flex-direction:row">
+      <button class="btn" id="pasteCancel">Cancelar</button>
+      <button class="btn pri" id="pasteOK">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo center" id="urlModal">
+  <div class="md" style="max-width:520px">
+    <div class="md-h"><h3><span>🌐</span><span>Importar desde URL</span></h3><button class="md-x" id="urlClose">✕</button></div>
+    <div class="md-b">
+      <input type="url" id="urlInput" placeholder="https://…/backup.json" style="width:100%;padding:12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;color:var(--txt);font-size:15px;outline:none">
+      <div style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.55;padding:10px 12px;background:rgba(255,255,255,.02);border-radius:8px">
+        💡 URL directa al archivo .json (con CORS abierto).
+      </div>
+    </div>
+    <div class="md-f" style="flex-direction:row">
+      <button class="btn" id="urlCancel">Cancelar</button>
+      <button class="btn pri" id="urlOK">Descargar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="filtModal">
+  <div class="md">
+    <div class="md-h"><h3><span>🎛️</span><span>Filtros</span></h3><button class="md-x" id="filtClose">✕</button></div>
+    <div class="md-b">
+      <div class="fl">
+        <div class="fld2"><label>Estado</label><select id="flEstado"><option value="">Todos</option><option>Excelente</option><option>Muy bueno</option><option>Bueno</option><option>Regular</option><option>Para revisar</option><option>Faltante</option></select></div>
+        <div class="fld2"><label>Formato</label><select id="flFormato"><option value="">Todos</option><option>CD</option><option>CD doble</option><option>CD caja</option><option>DVD</option><option>Vinilo</option><option>Casete</option><option>Digital</option><option>Otro</option></select></div>
+        <div class="row">
+          <div class="fld2"><label>Año desde</label><input type="number" id="flAnioD" min="1900" max="2100" inputmode="numeric"></div>
+          <div class="fld2"><label>Año hasta</label><input type="number" id="flAnioH" min="1900" max="2100" inputmode="numeric"></div>
+        </div>
+        <div class="fld2"><label>Ubicación</label><select id="flUbic"><option value="">Todas</option><option value="__con__">Con ubicación</option><option value="__sin__">Sin ubicación</option></select></div>
+        <div class="fld2"><label>Portada</label><select id="flPort"><option value="">Todas</option><option value="__con__">Con portada</option><option value="__sin__">Sin portada</option></select></div>
+        <div class="fld2"><label>Préstamo</label><select id="flPres"><option value="">Todos</option><option value="__prestados__">Prestados</option><option value="__disponibles__">Disponibles</option><option value="__vencidos__">Vencidos</option></select></div>
+        <div class="fld2"><label>🎧 Streaming</label><select id="flStream"><option value="">Todos</option><option value="__con__">Con links</option><option value="__sin__">Sin links</option></select></div>
+        <div class="fld2" id="flRatingWrap" style="display:none"><label>Valoración mínima</label>
+          <div class="seg" id="flRating">
+            <button type="button" data-v="">Todas</button>
+            <button type="button" data-v="3">⭐3+</button>
+            <button type="button" data-v="4">⭐4+</button>
+            <button type="button" data-v="5">⭐5</button>
+          </div>
+        </div>
+        <div class="fld2" id="flFavWrap" style="display:none">
+          <label>Favoritos</label>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--txt);font-weight:500">
+            <input type="checkbox" id="flFav" style="width:16px;height:16px;accent-color:var(--accent)">
+            <span>⭐ Solo favoritos</span>
+          </label>
+        </div>
+        <div class="fld2">
+          <label>🆕 Novedad</label>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:.85rem;color:var(--txt);font-weight:500">
+            <input type="checkbox" id="flUnseen" style="width:16px;height:16px;accent-color:var(--accent)">
+            <span>🆕 Solo no vistos</span>
+          </label>
+        </div>
+        <button class="clear" id="filtClear">✕ Limpiar todos los filtros</button>
+      </div>
+    </div>
+    <div class="md-f" style="flex-direction:row">
+      <button class="btn" id="filtCancel">Cancelar</button>
+      <button class="btn pri" id="filtApply">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo" id="moreModal">
+  <div class="md">
+    <div class="md-h"><h3><span>⋯</span><span>Más opciones</span></h3><button class="md-x" id="moreClose">✕</button></div>
+    <div class="md-b" id="moreBody" style="padding:12px"></div>
+  </div>
+</div>
+
+<div class="mo center" id="syncModal">
+  <div class="md" style="max-width:560px">
+    <div class="md-h"><h3><span>🔄</span><span>Google Drive</span></h3><button class="md-x" id="syncClose">✕</button></div>
+    <div class="md-b">
+      <div style="padding:12px 14px;background:rgba(93,220,154,.08);border-left:4px solid var(--ok);border-radius:10px;font-size:.82rem;line-height:1.55;margin-bottom:16px">
+        <b style="color:var(--ok)">✅ 100% gratis</b> — Sin Google Cloud, sin tarjeta, sin API Key.<br>
+        Usá un <b>Google Apps Script</b> como puente a tu carpeta de Drive.
+      </div>
+      <div class="guide-steps">
+        <details class="guide-step" open>
+          <summary><span class="num">1</span><span>Crear carpeta de backups en Drive</span></summary>
+          <div class="gs-body">
+            <ol>
+              <li>En el celular o PC abrí <b>drive.google.com</b></li>
+              <li>Creá una carpeta, por ejemplo <b>Discografia_Backups</b></li>
+              <li>Ahí van a vivir los archivos <code>.json</code> exportados</li>
+            </ol>
+          </div>
+        </details>
+        <details class="guide-step">
+          <summary><span class="num">2</span><span>Copiar el ID de la carpeta</span></summary>
+          <div class="gs-body">
+            <ol>
+              <li>Abrí la carpeta en Drive</li>
+              <li>La URL se ve así: <code>https://drive.google.com/drive/folders/<b>1ABC…xyz</b></code></li>
+              <li>Copiá solo <b>1ABC…xyz</b> — ese es el <code>FOLDER_ID</code></li>
+            </ol>
+          </div>
+        </details>
+        <details class="guide-step">
+          <summary><span class="num">3</span><span>Crear el proyecto en Apps Script</span></summary>
+          <div class="gs-body">
+            <ol>
+              <li>Abrí <b>https://script.google.com</b></li>
+              <li>Tocá <b>Nuevo proyecto</b></li>
+              <li>Borrá el código de ejemplo</li>
+              <li>Tocá <b>Copiar código</b> abajo y pegalo</li>
+              <li>Reemplazá <code>PEGÁ_AQUÍ_EL_ID_DE_LA_CARPETA</code> por tu <code>FOLDER_ID</code></li>
+            </ol>
+            <button type="button" class="btn-copy-gas" id="btnCopyGas">📋 Copiar código de Apps Script</button>
+            <div class="gas-box"><pre id="gasCodeBlock">/**
+ * Discografía Viewer — Puente Google Drive (solo lectura)
+ */
+var FOLDER_ID = 'PEGÁ_AQUÍ_EL_ID_DE_LA_CARPETA';
+
+function doGet(e) {
+  e = e || { parameter: {} };
+  var action = (e.parameter.action || 'list').toLowerCase();
+  try {
+    if (action === 'list') return json_(listFiles_());
+    if (action === 'get' || action === 'download') {
+      var id = e.parameter.id;
+      if (!id) return json_({ error: 'Falta parámetro id' });
+      return json_(getFile_(id));
+    }
+    return json_({ error: 'Acción desconocida: ' + action });
+  } catch (err) {
+    return json_({ error: String(err && err.message ? err.message : err) });
+  }
+}
+
+function listFiles_() {
+  var folder = DriveApp.getFolderById(FOLDER_ID);
+  var it = folder.getFiles();
+  var files = [];
+  while (it.hasNext()) {
+    var f = it.next();
+    var name = f.getName();
+    if (!/\.json$/i.test(name)) continue;
+    files.push({
+      id: f.getId(),
+      name: name,
+      modifiedTime: f.getLastUpdated().toISOString(),
+      size: f.getSize()
+    });
+  }
+  return { files: files };
+}
+
+function getFile_(id) {
+  var file = DriveApp.getFileById(id);
+  var text = file.getBlob().getDataAsString('UTF-8');
+  return JSON.parse(text);
+}
+
+function json_(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre></div>
+          </div>
+        </details>
+        <details class="guide-step">
+          <summary><span class="num">4</span><span>Implementar como aplicación web</span></summary>
+          <div class="gs-body">
+            <ol>
+              <li>En Apps Script: <b>Implementar</b> → <b>Nueva implementación</b></li>
+              <li>Tipo: ⚙️ <b>Aplicación web</b></li>
+              <li><b>Ejecutar como:</b> <b>Yo</b></li>
+              <li><b>Quién tiene acceso:</b> <b>Cualquier persona</b></li>
+              <li>Tocá <b>Implementar</b></li>
+              <li>Autorizá los permisos de Drive</li>
+              <li>Copiá la URL que termina en <code>/exec</code></li>
+            </ol>
+          </div>
+        </details>
+      </div>
+      <div class="fld2" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+        <label style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">🔗 URL de Apps Script Web App</label>
+        <input type="url" id="syncWebAppInput" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;padding:12px 14px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:12px;font-family:ui-monospace,monospace;outline:none">
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;font-size:.85rem;cursor:pointer;color:var(--txt);margin-bottom:12px">
+        <input type="checkbox" id="syncAuto" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" checked>
+        <span>🔄 Sincronizar automáticamente al abrir la app</span>
+      </label>
+      <div id="syncStatusBox"></div>
+    </div>
+    <div class="md-f" style="flex-direction:row">
+      <button class="btn" id="syncCancel">Cancelar</button>
+      <button class="btn" id="syncDiag">🩺 Probar</button>
+      <button class="btn pri" id="syncSave">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo center" id="backupsModal">
+  <div class="md" style="max-width:560px">
+    <div class="md-h"><h3><span>📂</span><span>Backups en Drive</span></h3><button class="md-x" id="backupsClose">✕</button></div>
+    <div class="md-b" id="backupsBody"></div>
+    <div class="md-f" style="flex-direction:row">
+      <button class="btn" id="backupsRefresh">🔄 Refrescar</button>
+      <button class="btn pri" id="backupsForceSync">⬇️ Forzar sync</button>
+      <button class="btn" id="backupsCancel">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="mo center" id="localFolderModal">
+  <div class="md" style="max-width:560px">
+    <div class="md-h"><h3><span>📂</span><span>Carpeta local de backups</span></h3><button class="md-x" id="lfClose">✕</button></div>
+    <div class="md-b">
+      <div style="padding:12px 14px;background:rgba(93,220,154,.08);border-left:4px solid var(--ok);border-radius:10px;font-size:.82rem;line-height:1.55;margin-bottom:16px">
+        <b style="color:var(--ok)">✅ Sin servidores</b> — La app lee directamente de archivos de tu dispositivo.
+      </div>
+      <div style="padding:12px 14px;background:rgba(79,195,247,.06);border-left:3px solid var(--accent);border-radius:10px;font-size:.78rem;line-height:1.55;margin-bottom:14px;color:var(--muted)">
+        <b style="color:var(--accent)">📌 Cómo funciona</b><br>
+        1. Elegí la carpeta donde guardás los <code>.json</code> exportados<br>
+        2. La app ordena por <b>fecha/hora del nombre</b> del archivo<br>
+        3. Al abrir, carga <b>SIEMPRE el más reciente</b>
+      </div>
+      <div id="lfModeBadge" style="padding:10px 12px;background:rgba(167,139,250,.08);border-left:3px solid var(--purple);border-radius:8px;font-size:.75rem;line-height:1.5;color:var(--muted);margin-bottom:14px"></div>
+      <div id="lfStatus"></div>
+      <div id="lfInfo" style="display:none">
+        <div class="storage-box">
+          <div class="sb-head"><span>📁 <b id="lfCurrentName">—</b></span></div>
+          <div class="sb-info">
+            Último archivo: <b id="lfLastFile">—</b><br>
+            Última sincronización: <b id="lfLastSync">nunca</b>
+          </div>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;font-size:.85rem;cursor:pointer;color:var(--txt);margin-bottom:14px">
+        <input type="checkbox" id="lfAuto" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" checked>
+        <span>🔄 Cargar automáticamente al abrir la app</span>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button type="button" id="lfPick" style="padding:14px;border-radius:12px;background:rgba(79,195,247,.15);border:1px solid rgba(79,195,247,.45);color:var(--accent);font-weight:700;font-size:.9rem;cursor:pointer;font-family:inherit">📂 Elegir carpeta / archivos</button>
+        <button type="button" id="lfSyncNow" style="padding:13px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-weight:600;font-size:.88rem;cursor:pointer;font-family:inherit">🔄 Sincronizar ahora</button>
+        <button type="button" id="lfClear" style="padding:13px;border-radius:12px;background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.35);color:#ffb3b3;font-weight:600;font-size:.88rem;cursor:pointer;font-family:inherit">🗑️ Olvidar carpeta</button>
+      </div>
+      <div id="lfBrowserNote" style="margin-top:14px;padding:10px 12px;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:8px;font-size:.72rem;color:var(--muted);line-height:1.55;display:none"></div>
+    </div>
+  </div>
+</div>
+
+<div class="mo center" id="remoteUrlModal">
+  <div class="md" style="max-width:560px">
+    <div class="md-h"><h3><span>☁️</span><span>URLs remotas</span></h3><button class="md-x" id="ruClose">✕</button></div>
+    <div class="md-b">
+      <div style="padding:12px 14px;background:rgba(79,195,247,.06);border-left:3px solid var(--accent);border-radius:10px;font-size:.78rem;line-height:1.55;margin-bottom:16px;color:var(--muted)">
+        <b style="color:var(--accent)">💡 Ideal para iOS</b> — Guardá URLs de backups en <b>iCloud Drive</b>, <b>Dropbox</b> o <b>Google Drive</b>.
+      </div>
+      <div id="ruList" style="margin-bottom:16px"></div>
+      <div class="section-label" style="margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);font-size:.68rem;color:var(--accent);text-transform:uppercase;letter-spacing:1.2px;font-weight:700">➕ Agregar URL</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+        <input type="text" id="ruName" placeholder="Nombre (ej: iCloud principal)" style="padding:12px 14px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:15px;outline:none;font-family:inherit">
+        <input type="url" id="ruUrl" placeholder="https://..." inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" style="padding:12px 14px;background:var(--bg2);border:1px solid var(--line);border-radius:11px;color:var(--txt);font-size:13px;font-family:ui-monospace,monospace;outline:none">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button type="button" id="ruTest" style="flex:1;padding:13px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);color:var(--txt);font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">🔌 Probar</button>
+        <button type="button" id="ruAdd" style="flex:1;padding:13px;border-radius:12px;background:rgba(79,195,247,.18);border:1px solid rgba(79,195,247,.5);color:var(--accent);font-weight:700;font-size:.85rem;cursor:pointer;font-family:inherit">➕ Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mo center" id="cmdPalette" style="align-items:flex-start;padding-top:80px">
+  <div class="md cmd-md">
+    <div style="padding:8px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px">
+      <span style="font-size:1.1rem;color:var(--accent)">⌘</span>
+      <input type="text" id="cmdInput" placeholder="Escribí un comando…" autocomplete="off" style="flex:1;background:transparent;border:0;color:var(--txt);font-size:15px;outline:none;padding:10px 0;font-family:inherit">
+      <kbd style="background:var(--bg2);padding:2px 6px;border-radius:5px;font-size:.7rem;color:var(--muted)">ESC</kbd>
+    </div>
+    <div id="cmdList" style="max-height:400px;overflow-y:auto;padding:6px"></div>
+  </div>
+</div>
+
+<div class="mo center" id="legalModal">
+  <div class="md" style="max-width:520px">
+    <div class="md-h">
+      <h3><span>⚖️</span><span>Aviso legal y términos de uso</span></h3>
+      <button class="md-x" id="legalClose" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="md-b" id="legalBody">
+      <div style="text-align:center;padding:8px 0 14px">
+        <div style="font-size:2.6rem;margin-bottom:6px">🔒</div>
+        <div style="font-size:1rem;font-weight:700;color:var(--ok)">Solo consulta del catálogo</div>
+        <div style="font-size:.72rem;color:var(--muted);margin-top:4px">
+          Versión <b id="legalVersionTag">—</b> · <span id="legalDateTag">—</span>
+        </div>
+      </div>
+      <div style="font-size:.82rem;line-height:1.7;color:var(--txt)">
+        <p style="margin:0 0 12px">
+          <b>Discografía Viewer</b> es un <b>visor personal de catálogo musical</b>. NO descarga, NO aloja, NO transmite y NO distribuye música ni contenido protegido por derechos de autor. Toda la información mostrada proviene exclusivamente de la lista <b>.json</b> que el usuario carga manualmente en este dispositivo.
+        </p>
+        <div style="background:rgba(93,220,154,.06);border-left:3px solid var(--ok);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--ok);display:block;margin-bottom:6px">✅ Lo que SÍ hace:</b>
+          <ul style="margin:0;padding-left:20px">
+            <li>Mostrar la metadata de tu colección personal de CDs</li>
+            <li>Leer y consultar la lista cargada (sin modificarla)</li>
+            <li>Abrir enlaces externos ya guardados en la lista</li>
+            <li>Buscar el álbum en plataformas oficiales</li>
+            <li>Exportar copias de seguridad JSON/CSV de tu propia lista</li>
+          </ul>
+        </div>
+        <div style="background:rgba(255,107,107,.06);border-left:3px solid var(--danger);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--danger);display:block;margin-bottom:6px">🚫 Lo que NO hace:</b>
+          <ul style="margin:0;padding-left:20px">
+            <li>Descargar archivos de audio, video o imágenes protegidas</li>
+            <li>Almacenar archivos multimedia en el dispositivo</li>
+            <li>Saltar sistemas de pago, DRM o suscripciones</li>
+            <li>Compartir archivos entre usuarios</li>
+            <li>Abrir dominios no oficiales</li>
+            <li>Enviar tus datos a servidores externos</li>
+          </ul>
+        </div>
+        <div style="background:rgba(79,195,247,.06);border-left:3px solid var(--accent);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--accent);display:block;margin-bottom:6px">🔐 Privacidad y datos:</b>
+          <ul style="margin:0;padding-left:20px">
+            <li>Todo se guarda en <b>localStorage</b></li>
+            <li>Si configurás Drive, tus backups van a <b>tu propia cuenta</b></li>
+            <li>No hay analytics, no hay telemetría</li>
+            <li>Podés vaciar todo desde <b>Más → Vaciar colección local</b></li>
+          </ul>
+        </div>
+        <div style="background:rgba(255,202,40,.08);border-left:3px solid var(--accent2);border-radius:10px;padding:12px 14px;margin-bottom:12px">
+          <b style="color:var(--accent2);display:block;margin-bottom:6px">⚠️ Responsabilidad del usuario:</b>
+          <ul style="margin:0;padding-left:20px">
+            <li>Sos el único responsable del origen y contenido de la lista</li>
+            <li>Debés poseer los CDs originales o tener derecho legítimo</li>
+            <li>El uso indebido de enlaces externos es tu responsabilidad</li>
+            <li>El autor no se hace responsable por daños derivados</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="md-f" style="flex-direction:column;gap:10px">
+      <label style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:rgba(255,202,40,.06);border:1px solid rgba(255,202,40,.3);border-radius:11px;cursor:pointer;font-size:.82rem;line-height:1.5">
+        <input type="checkbox" id="legalAcepto" style="width:18px;height:18px;accent-color:var(--accent);margin-top:2px;flex:0 0 auto;cursor:pointer">
+        <span>He leído y <b>acepto</b> los términos. Entiendo que esta app <b>no descarga ni aloja contenido protegido</b>.</span>
+      </label>
+      <div style="display:flex;gap:8px;width:100%">
+        <button class="btn" id="legalPDF" style="flex:0 0 auto;padding:13px 14px" title="Guardar como PDF">📄</button>
+        <button class="btn pri" id="legalAceptar" style="flex:1;opacity:.45;cursor:not-allowed" disabled>✓ Aceptar y continuar</button>
+      </div>
+      <div style="text-align:center;font-size:.62rem;color:var(--muted);line-height:1.5;padding-top:4px">
+        Al continuar se registra una firma digital local (SHA-256).
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     ORDEN ESTRICTO DE CARGA — NO MODIFICAR
+     ════════════════════════════════════════════════════════════════ -->
+<script src="app-core-1-base.js"></script>
+<script src="app-core-2-storage.js"></script>
+<script src="app-core-3-store.js"></script>
+<script src="app-services-1-streaming.js"></script>
+<script src="app-services-2-voice-ai.js"></script>
+<script src="app-ui-1-state.js"></script>
+<script src="app-ui-2-render.js"></script>
+<script src="app-ui-3-detail.js"></script>
+<script src="app-ui-4-init.js"></script>
+<script>
+(function(){
+  if (!window.Capacitor) return;
+  var P = window.Capacitor.Plugins || {};
+  var Browser = P.Browser, Share = P.Share, StatusBar = P.StatusBar, App = P.App;
+  var origOpen = window.open;
+  window.open = function(url, target, features){
+    if (url && typeof url === "string" && /^https?:/i.test(url) && Browser){
+      try { Browser.open({ url: url, presentationStyle: "popover" }); return null; } catch(e){}
+    }
+    return origOpen.call(window, url, target, features);
+  };
+  document.addEventListener("click", function(e){
+    var a = e.target && e.target.closest ? e.target.closest("a") : null;
+    if (!a || !a.href) return;
+    if (a.hasAttribute("download")) return;
+    if (a.href.indexOf("javascript:") === 0) return;
+    if (!/^https?:/i.test(a.href)) return;
+    if (a.origin === window.location.origin && a.target !== "_blank") return;
+    e.preventDefault();
+    if (Browser) Browser.open({ url: a.href }); else origOpen.call(window, a.href, "_blank");
+  }, true);
+  if (Share && navigator.share) {
+    var origShare = navigator.share.bind(navigator);
+    navigator.share = function(data){
+      return Share.share({ title: data.title || document.title || "Compartir", text: data.text || "", url: data.url || undefined, dialogTitle: "Compartir" })
+        .catch(function(err){ if (err && /cancel/i.test(err.message || "")) return; return origShare(data); });
+    };
+  }
+  function applyStatusBar(){
+    var isLight = document.body.classList.contains("light");
+    if (StatusBar){
+      StatusBar.setStyle({ style: isLight ? "LIGHT" : "DARK" }).catch(function(){});
+      StatusBar.setBackgroundColor({ color: isLight ? "#f5f7fa" : "#0e1116" }).catch(function(){});
+    }
+  }
+  if (StatusBar) applyStatusBar();
+  if (App) { App.addListener("backButton", function(){ App.exitApp(); }); }
+})();
+</script>
+</body>
+</html>
